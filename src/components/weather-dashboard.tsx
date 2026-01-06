@@ -5,50 +5,19 @@ import { SearchInput } from "./search-input"
 import { WeatherCard } from "./weather-card"
 import { LoadingState } from "./loading-state"
 import { ErrorState } from "./error-state"
-
-interface WeatherData {
-  city: string
-  country: string
-  temperature: number
-  condition: string
-  humidity: number
-  windSpeed: number
-  feelsLike: number
-  icon: string
-}
+import { useWeather } from "@/hooks/useWeather"
 
 export function WeatherDashboard() {
-  const [weather, setWeather] = useState<WeatherData | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [searchHistory, setSearchHistory] = useState<string[]>([])
+  const [city, setCity] = useState("");
+  const { data, isLoading, error } = useWeather(city);
 
-  const handleSearch = async (city: string) => {
-    if (!city.trim()) return
-
-    setLoading(true)
-    setError(null)
-
-    try {
-      // Simulated API call - replace with real weather API
-      const response = await fetch(`/api/weather?city=${encodeURIComponent(city)}`)
-
-      if (!response.ok) {
-        throw new Error("City not found. Please try another search.")
-      }
-
-      const data = await response.json()
-      setWeather(data)
-
-      // Add to search history
-      setSearchHistory((prev) => [city, ...prev.slice(0, 4)])
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch weather data")
-      setWeather(null)
-    } finally {
-      setLoading(false)
+  const handleSearch = (searchCity: string) => {
+    setCity(searchCity);
+    if (searchCity && !searchHistory.includes(searchCity)) {
+      setSearchHistory((prev) => [searchCity, ...prev].slice(0, 5));
     }
-  }
+  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4">
@@ -56,7 +25,7 @@ export function WeatherDashboard() {
         {/* Header */}
         <div className="mb-12 text-center">
           <h1 className="text-5xl md:text-6xl font-bold text-white mb-2">
-            <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">Weather</span>
+            <span className="bg-linear-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">Weather</span>
           </h1>
           <p className="text-slate-400 text-lg">Check weather conditions worldwide</p>
         </div>
@@ -65,7 +34,7 @@ export function WeatherDashboard() {
         <div className="mb-8">
           <SearchInput
             onSearch={handleSearch}
-            isLoading={loading}
+            isLoading={isLoading}
             searchHistory={searchHistory}
             onSelectHistory={handleSearch}
           />
@@ -73,11 +42,11 @@ export function WeatherDashboard() {
 
         {/* Content Area */}
         <div className="space-y-6">
-          {loading && <LoadingState />}
-          {error && <ErrorState message={error} />}
-          {weather && !loading && <WeatherCard weather={weather} />}
+          {isLoading && <LoadingState />}
+          {error && <ErrorState message={"error fetching weather data"}  />}
+          {data && !isLoading && <WeatherCard weather={data} />}
 
-          {!loading && !error && !weather && (
+          {!isLoading && !error && !data && (
             <div className="text-center py-12">
               <p className="text-slate-400 text-base">Search for a city to see weather information</p>
             </div>
